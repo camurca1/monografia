@@ -6,7 +6,6 @@ library(GetDFPData)
 library(GetFREData)
 library(tidyverse)
 library(lubridate)
-library(quantmod)
 
 cia.info <- tibble(get_info_companies(tempdir()))
 cia.info2 <- tibble(gdfpd.get.info.companies(type.data = 'companies', cache.folder = tempdir()))
@@ -24,7 +23,6 @@ cias.regulares <- cia.info %>%
   filter(SIT_EMISSOR!="EM RECUPERAÇÃO JUDICIAL OU EQUIVALENTE") %>%
   filter(SIT_EMISSOR!="PARALISADA") %>%
   filter(SIT_EMISSOR!="FALIDA")
-
 saveRDS(cias.regulares, file = "Data/cias_regulares")
 
 codigos.cvm <- c(t(cias.regulares$CD_CVM))
@@ -45,13 +43,17 @@ l.fre <- get_fre_data(companies_cvm_codes = codigos.cvm,
                       fre_to_read = 'last',
                       first_year = 2015,
                       last_year = 2020)
-
 saveRDS(l.fre, file = "Data/cia_fre")
 
-# cia.info2_reduzido <- left_join(t(codigos.cvm), cia.info2, by = c())
-# 
+cia.info2_reduzido <- left_join(as.data.frame(codigos.cvm), cia.info2, by = c("codigos.cvm" = "id.company"))
+cia.info2_reduzido <- cia.info2_reduzido %>% 
+  filter(!is.na(tickers))
+saveRDS(cia.info2_reduzido, file = "Data/cia_info_reduzido")
+
 # tickers <- c(t(na.omit(cia.info2$tickers)))
 # tickers <- unlist((strsplit(tickers, ";")))
-# 
-# saveRDS(tickers, file = "Data/cia_tickers")
-# View(as.data.frame(codigos.cvm))
+
+
+
+
+     
