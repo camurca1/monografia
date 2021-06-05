@@ -5,31 +5,53 @@ library(GetDFPData2)
 library(GetDFPData)
 library(GetFREData)
 library(tidyverse)
+library(lubridate)
 library(quantmod)
 
 cia.info <- tibble(get_info_companies(tempdir()))
 cia.info2 <- tibble(gdfpd.get.info.companies(type.data = 'companies', cache.folder = tempdir()))
-
 saveRDS(cia.info, file = "Data/cia_info")
 saveRDS(cia.info2, file = "Data/cia_info2")
 
-cvm.code <- c(t(cia.info$CD_CVM))
+cia.info$DT_REG <-dmy(cia.info$DT_REG)  
 
-l.dfp <- get_dfp_data(companies_cvm_codes = cvm.code, use_memoise = FALSE, 
-                      clean_data = TRUE, type_docs = c('BPA', 'BPP', 'DMPL', 'DRE'), 
-                      type_format = 'con', first_year = 2010, last_year = 2020)
+cias.regulares <- cia.info %>% 
+  filter(is.na(DT_CANCEL)) %>% 
+  filter(SIT_REG=="ATIVO") %>% 
+  filter(SIT_EMISSOR!="EM LIQUIDAÇÃO JUDICIAL") %>%
+  filter(SIT_EMISSOR!="LIQUIDAÇÃO EXTRAJUDICIAL") %>%
+  filter(SIT_EMISSOR!="EM RECUPERAÇÃO EXTRAJUDICIAL") %>%
+  filter(SIT_EMISSOR!="EM RECUPERAÇÃO JUDICIAL OU EQUIVALENTE") %>%
+  filter(SIT_EMISSOR!="PARALISADA") %>%
+  filter(SIT_EMISSOR!="FALIDA")
+
+saveRDS(cias.regulares, file = "Data/cias_regulares")
+
+codigos.cvm <- c(t(cias.regulares$CD_CVM))
+codigos.cvm <- codigos.cvm[-match(13773, codigos.cvm)]
+
+
+l.dfp <- get_dfp_data(companies_cvm_codes = codigos.cvm,
+                      use_memoise = FALSE, 
+                      clean_data = TRUE,
+                      type_docs = c('BPA', 'BPP', 'DMPL', 'DRE'),
+                      type_format = 'con',
+                      first_year = 2015,
+                      last_year = 2020)
 saveRDS(l.dfp, file = "Data/cia_dfp") 
 
 
-l.fre <- get_fre_data(companies_cvm_codes = cvm.code[-c(426,683,801,834,836)],
+l.fre <- get_fre_data(companies_cvm_codes = codigos.cvm,
                       fre_to_read = 'last',
-                      first_year = 2010,
+                      first_year = 2015,
                       last_year = 2020)
 
 saveRDS(l.fre, file = "Data/cia_fre")
-l.fre <- readRDS("Data/cia_fre")
 
-tickers <- c(t(na.omit(cia.info2$tickers)))
-tickers <- unlist((strsplit(tickers, ";")))
-
-saveRDS(tickers, file = "Data/cia_tickers")
+# cia.info2_reduzido <- left_join(t(codigos.cvm), cia.info2, by = c())
+# 
+# tickers <- c(t(na.omit(cia.info2$tickers)))
+# tickers <- unlist((strsplit(tickers, ";")))
+# 
+# saveRDS(tickers, file = "Data/cia_tickers")
+# View(as.data.frame(codigos.cvm))
