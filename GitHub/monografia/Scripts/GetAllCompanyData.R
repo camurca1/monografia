@@ -1,6 +1,7 @@
 rm(list = ls())
 options(scipen = 999)
 
+
 library(GetDFPData2)
 library(GetDFPData)
 library(GetFREData)
@@ -8,7 +9,8 @@ library(tidyverse)
 library(lubridate)
 
 cia.info <- tibble(get_info_companies(tempdir()))
-cia.info2 <- tibble(gdfpd.get.info.companies(type.data = 'companies', cache.folder = tempdir()))
+cia.info2 <- tibble(gdfpd.get.info.companies(type.data = 'companies',
+                                             cache.folder = tempdir()))
 saveRDS(cia.info, file = "Data/cia_info")
 saveRDS(cia.info2, file = "Data/cia_info2")
 
@@ -45,12 +47,9 @@ l.fre <- get_fre_data(companies_cvm_codes = codigos.cvm,
                       last_year = 2020)
 saveRDS(l.fre, file = "Data/cia_fre")
 
-cia.info2_reduzido <- left_join(as.data.frame(codigos.cvm), cia.info2, by = c("codigos.cvm" = "id.company"))
+cia.info2_reduzido <- left_join(as.data.frame(codigos.cvm),
+                                cia.info2,
+                                by = c("codigos.cvm" = "id.company"))
 cia.info2_reduzido <- cia.info2_reduzido %>%
   filter(!is.na(tickers))
 saveRDS(cia.info2_reduzido, file = "Data/cia_info_reduzido")
-
-
-
-
-
