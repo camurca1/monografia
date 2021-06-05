@@ -27,3 +27,6 @@ df_controle <- ls_papel$df.control
 saveRDS(tickers, "Data/tickers")
 saveRDS(df_papel, "Data/precos_acoes")
 saveRDS(df_controle, "Data/acoes_controle")
+
+rm(list = ls())
+gc()
