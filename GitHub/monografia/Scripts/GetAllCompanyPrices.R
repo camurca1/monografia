@@ -1,6 +1,7 @@
 rm(list = ls())
 options(scipen = 999)
 
+
 library(BatchGetSymbols)
 library(lubridate)
 
@@ -23,5 +24,6 @@ df_papel <- ls_papel$df.tickers
 df_papel$ticker <- gsub(".SA", "", df_papel$ticker)
 df_controle <- ls_papel$df.control
 
+saveRDS(tickers, "Data/tickers")
 saveRDS(df_papel, "Data/precos_acoes")
 saveRDS(df_controle, "Data/acoes_controle")
