@@ -24,12 +24,20 @@ cias.regulares <- cia.info %>%
   filter(SIT_EMISSOR!="EM RECUPERAÇÃO EXTRAJUDICIAL") %>%
   filter(SIT_EMISSOR!="EM RECUPERAÇÃO JUDICIAL OU EQUIVALENTE") %>%
   filter(SIT_EMISSOR!="PARALISADA") %>%
-  filter(SIT_EMISSOR!="FALIDA")
+  filter(SIT_EMISSOR!="FALIDA") %>%
+  filter(DT_REG < "2015-01-01")
 saveRDS(cias.regulares, file = "Data/cias_regulares")
 
 codigos.cvm <- c(t(cias.regulares$CD_CVM))
-codigos.cvm <- codigos.cvm[-match(13773, codigos.cvm)]
+codigos.cvm <- codigos.cvm[-match(c(13773,23175,21636), codigos.cvm)]
 
+cia.info2_reduzido <- left_join(as.data.frame(codigos.cvm),
+                                cia.info2,
+                                by = c("codigos.cvm" = "id.company"))
+cia.info2_reduzido <- cia.info2_reduzido %>%
+  filter(!is.na(tickers))
+
+codigos.cvm <- c(t(cia.info2_reduzido$codigos.cvm))
 
 l.dfp <- get_dfp_data(companies_cvm_codes = codigos.cvm,
                       use_memoise = FALSE,
@@ -44,15 +52,9 @@ saveRDS(l.dfp, file = "Data/cia_dfp")
 l.fre <- get_fre_data(companies_cvm_codes = codigos.cvm,
                       fre_to_read = 'last',
                       first_year = 2015,
-                      last_year = 2020)
+                      last_year = 2021)
 saveRDS(l.fre, file = "Data/cia_fre")
 
-cia.info2_reduzido <- left_join(as.data.frame(codigos.cvm),
-                                cia.info2,
-                                by = c("codigos.cvm" = "id.company"))
-cia.info2_reduzido <- cia.info2_reduzido %>%
-  filter(!is.na(tickers))
-saveRDS(cia.info2_reduzido, file = "Data/cia_info_reduzido")
 
 rm(list = ls())
 gc()
