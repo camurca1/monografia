@@ -6,6 +6,7 @@ library(GetDFPData2)
 library(GetDFPData)
 library(GetFREData)
 library(tidyverse)
+library(tidyr)
 library(lubridate)
 
 cia.info <- tibble(get_info_companies(tempdir()))
@@ -37,6 +38,21 @@ cia.info2_reduzido <- left_join(as.data.frame(codigos.cvm),
 cia.info2_reduzido <- cia.info2_reduzido %>%
   filter(!is.na(tickers))
 saveRDS(cia.info2_reduzido, file = "Data/cia_info_reduzido")
+
+
+tickers <- as.data.frame(cia.info$codigos.cvm)
+tickers$symbols <- cia.info$tickers
+tickers <- tickers %>%
+  separate(symbols,
+           sep = ";",
+           into = c("sym1", "sym2", "sym3"),
+           convert = T) %>%
+  pivot_longer(cols = sym1:sym3,
+               names_to = "sym",
+               values_to = "simbolo") %>%
+  na.omit(simbolo)
+tickers$sym <- NULL
+saveRDS(tickers, "Data/tabelatickers")
 
 codigos.cvm <- c(t(cia.info2_reduzido$codigos.cvm))
 
