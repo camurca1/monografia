@@ -10,7 +10,7 @@ cia.info <- readRDS("Data/cia_info_reduzido")
 
 ativo.empresas <- dfp.empresas$`DF Consolidado - Balanço Patrimonial Ativo`
 passivo.empresas <- dfp.empresas$`DF Consolidado - Balanço Patrimonial Passivo`
-# dre.empresas <- dfp.empresas$`DF Consolidado - Demonstração do Resultado`
+dre.empresas <- dfp.empresas$`DF Consolidado - Demonstração do Resultado`
 
 ativo.empresas <- left_join(ativo.empresas,
                             select(cia.info,
@@ -28,14 +28,17 @@ passivo.empresas <- left_join(passivo.empresas,
                             by = c("CD_CVM" = "codigos.cvm"))
 passivo.empresas <- subset(passivo.empresas, passivo.empresas$sub.sector != "Intermediários Financeiros")
 
-# fre.empresas <- readRDS("Data/cia_fre")
-# historico.dividendos <- fre.empresas$df_dividends_details
+dre.empresas <- left_join(dre.empresas,
+                            select(cia.info,
+                                   codigos.cvm,
+                                   sub.sector,
+                                   segment),
+                            by = c("CD_CVM" = "codigos.cvm"))
+dre.empresas <- subset(dre.empresas, dre.empresas$sub.sector != "Intermediários Financeiros")
 
-
-ativo.empresas$DT_REFER <- ymd(ativo.empresas$DT_FIM_EXERC)
-passivo.empresas$DT_REFER <- ymd(passivo.empresas$DT_FIM_EXERC)
-
-# dre.empresas$DT_REFER <- ymd(dre.empresas$DT_FIM_EXERC)
+ativo.empresas$DT_REFER <- ymd(ativo.empresas$DT_REFER)
+passivo.empresas$DT_REFER <- ymd(passivo.empresas$DT_REFER)
+dre.empresas$DT_REFER <- ymd(dre.empresas$DT_REFER)
 
 ativoCirculante <- subset(ativo.empresas, ativo.empresas$CD_CONTA == '1.01')
 ativoRLP <- subset(ativo.empresas, ativo.empresas$CD_CONTA == '1.02.01')
@@ -44,9 +47,17 @@ ativoTotal <- subset(ativo.empresas, ativo.empresas$CD_CONTA == '1')
 passivoELP <- subset(passivo.empresas, passivo.empresas$CD_CONTA == '2.02')
 passivoCirculante <- subset(passivo.empresas, passivo.empresas$CD_CONTA == '2.01')
 
-# dreLucroLiq = subset(dre.empresas, dre.empresas$CD_CONTA == '3.11')
+dreLucroLiq <- subset(dre.empresas, dre.empresas$CD_CONTA == '3.11')
+dreLucroLiq <- subset(dreLucroLiq, dreLucroLiq$CD_CVM != 3115)
+dreLucroLiq <- subset(dreLucroLiq, dreLucroLiq$CD_CVM != 23159)
+dreLucroLiq <- rbind(dreLucroLiq, filter(dre.empresas,
+                                         dre.empresas$CD_CVM == 3115,
+                                         dre.empresas$CD_CONTA == '3.13'))
+dreLucroLiq <- rbind(dreLucroLiq, filter(dre.empresas,
+                                         dre.empresas$CD_CVM == 23159,
+                                         dre.empresas$CD_CONTA == '3.13'))
 
-rm(ativo.empresas, passivo.empresas, dre.empresas, dfp.empresas)
+rm(ativo.empresas, passivo.empresas, dre.empresas, dfp.empresas, cia.info)
 gc()
 
 bp <- distinct(full_join(ativoCirculante,
@@ -85,8 +96,18 @@ bp <- distinct(full_join(bp,
                                     NOME_PASSIVO_ELP = DS_CONTA,
                                     VALOR_PASSIVO_ELP = VL_CONTA),
                          by=c("CD_CVM","DT_REFER")))
+bp <- distinct(full_join(bp,
+                         select(dreLucroLiq,
+                                CD_CVM,
+                                DT_REFER,
+                                ESCALA_MOEDA_DRE_LL = ESCALA_MOEDA,
+                                COD_DRE_LL = CD_CONTA,
+                                NOME_DRE_LL = DS_CONTA,
+                                VALOR_DRE_LL = VL_CONTA),
+                         by=c("CD_CVM","DT_REFER")))
 
-rm(ativoCirculante, ativoRLP, ativoTotal, passivoCirculante, passivoELP)
+
+rm(ativoCirculante, ativoRLP, ativoTotal, passivoCirculante, passivoELP, dreLucroLiq)
 gc()
 
 bp$VL_CONTA <- if_else(bp$ESCALA_MOEDA == "MIL",
@@ -109,17 +130,23 @@ bp$VALOR_PASSIVO_ELP <- if_else(bp$ESCALA_MOEDA_PASSIVO_ELP == "MIL",
                                 bp$VALOR_PASSIVO_ELP*1000,
                                 bp$VALOR_PASSIVO_ELP)
 bp$ESCALA_MOEDA_PASSIVO_ELP <- NULL
+bp$VALOR_DRE_LL <- if_else(bp$ESCALA_MOEDA_DRE_LL == "MIL",
+                           bp$VALOR_DRE_LL*1000,
+                           bp$VALOR_DRE_LL)
+bp$ESCALA_MOEDA_DRE_LL <- NULL
 bp$source_file <- NULL
 bp$COLUNA_DF <- NULL
 bp$DT_INI_EXERC <- NULL
-
+saveRDS(bp, "Data/balanco_patrimonial")
 
 indices <- as.data.frame(bp$CD_CVM)
 indices$DT_REFER <- bp$DT_REFER
 indices$LG <- (bp$VL_CONTA+bp$VALOR_ATIVO_RLP)/(bp$VALOR_PASSIVO_CIRCULANTE+bp$VALOR_PASSIVO_ELP)
+indices$ROA <- (bp$VALOR_DRE_LL/bp$VALOR_ATIVO_TOTAL)
+saveRDS(indices, "Data/indices_calculados")
 
-
-
+rm(ls())
+gc()
 
 
 
