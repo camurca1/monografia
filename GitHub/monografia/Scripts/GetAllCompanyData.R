@@ -40,8 +40,9 @@ cia.info2_reduzido <- cia.info2_reduzido %>%
 saveRDS(cia.info2_reduzido, file = "Data/cia_info_reduzido")
 
 
-tickers <- as.data.frame(cia.info$codigos.cvm)
-tickers$symbols <- cia.info$tickers
+tickers <- as.data.frame(cia.info2_reduzido$codigos.cvm)
+names(tickers)[1] <- "CD_CVM"
+tickers$symbols <- cia.info2_reduzido$tickers
 tickers <- tickers %>%
   separate(symbols,
            sep = ";",
