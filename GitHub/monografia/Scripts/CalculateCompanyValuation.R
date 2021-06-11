@@ -7,6 +7,7 @@ library(lubridate)
 library(bizdays)
 
 
+holidaysANBIMA <- append(holidaysANBIMA,  ymd(c("2016-12-30", "2017-12-29")))
 cal <- create.calendar("Brazil/ANBIMA", holidaysANBIMA, weekdays=c("saturday", "sunday"))
 
 
@@ -15,6 +16,7 @@ cia.info <- readRDS("Data/cia_info_reduzido")
 precos.empresas <- readRDS("Data/precos_acoes")
 tickers.negociados <- readRDS("Data/tickers_mais_negociados")
 fre.empresas <- readRDS("Data/cia_fre")
+
 
 names(precos.empresas)[7] <- "DT_REFER"
 names(precos.empresas)[8] <- "simbolo"
@@ -135,7 +137,8 @@ bp <- left_join(bp,
                 select(precos.empresas,
                        simbolo,
                        DT_REFER,
-                       price.adjusted),
+                       price.close,
+                       volume),
                 by = c("simbolo", "dia.util.anterior" = "DT_REFER"))
 bp <- left_join(bp, select(capital.empresas,
                            CD_CVM,
@@ -175,18 +178,37 @@ bp$ESCALA_MOEDA_DRE_LL <- NULL
 bp$source_file <- NULL
 bp$COLUNA_DF <- NULL
 bp$DT_INI_EXERC <- NULL
+
+volume <- bp %>%
+  count(CD_CVM, volume, volume != 0)
+
+obs.completas <- bp %>%
+  count(CD_CVM) %>%
+  filter(n==6)
+
+bp <- left_join(obs.completas, bp, by= "CD_CVM")
+names(bp)[1] <- "CD_CVM"
+bp$n <- NULL
+
+rm(obs.completas)
+gc()
+
 saveRDS(bp, "Data/balanco_patrimonial")
 
 indices <- as.data.frame(bp$CD_CVM)
+indices$ticker <- bp$simbolo
 indices$DT_REFER <- bp$DT_REFER
 indices$LG <- (bp$VL_CONTA+bp$VALOR_ATIVO_RLP)/(bp$VALOR_PASSIVO_CIRCULANTE+bp$VALOR_PASSIVO_ELP)
 indices$ROA <- (bp$VALOR_DRE_LL/bp$VALOR_ATIVO_TOTAL)
-indices$IPL <- (bp$price.adjusted/(bp$VALOR_DRE_LL/bp$total.acoes))
+indices$IPL <- (bp$price.close/(bp$VALOR_DRE_LL/bp$total.acoes))
 saveRDS(indices, "Data/indices_calculados")
 
+volume.ano <- precos.empresas %>%
+  group_by(ticker, ano = year(ref.date)) %>%
+  summarize(., media = mean(volume))
 
 
-rm(list = ls())
-gc()
+# rm(list = ls())
+# gc()
 
 
