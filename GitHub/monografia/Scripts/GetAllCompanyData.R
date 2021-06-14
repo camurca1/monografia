@@ -29,6 +29,7 @@ cias.regulares <- cia.info %>%
   filter(DT_REG < "2015-01-01")
 saveRDS(cias.regulares, file = "Data/cias_regulares")
 
+
 codigos.cvm <- c(t(cias.regulares$CD_CVM))
 codigos.cvm <- codigos.cvm[-match(c(13773,23175,21636), codigos.cvm)]
 
@@ -60,7 +61,7 @@ codigos.cvm <- c(t(cia.info2_reduzido$codigos.cvm))
 l.dfp <- get_dfp_data(companies_cvm_codes = codigos.cvm,
                       use_memoise = FALSE,
                       clean_data = TRUE,
-                      type_docs = c('BPA', 'BPP', 'DMPL', 'DRE'),
+                      type_docs = c('BPA', 'BPP', 'DRE', 'DFC_MI'),
                       type_format = 'con',
                       first_year = 2015,
                       last_year = 2020)
