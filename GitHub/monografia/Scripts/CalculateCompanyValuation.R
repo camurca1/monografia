@@ -204,7 +204,6 @@ bp <- distinct(left_join(bp,
                                 NOME_DFC_DA = DS_CONTA,
                                 VALOR_DFC_DA = VL_CONTA),
                          by=c("CD_CVM","DT_REFER")))
-bp$EBITDA <- bp$VALOR_DRE_EBIT + bp$VALOR_DFC_DA
 bp <- left_join(bp, select(tickers.negociados,
                            CD_CVM,
                            simbolo),
@@ -271,6 +270,7 @@ bp$VALOR_DFC_DA <- if_else(bp$ESCALA_MOEDA_DFC_DA == "MIL",
                            bp$VALOR_DFC_DA*1000,
                            bp$VALOR_DFC_DA)
 bp$VALOR_DFC_DA <- replace(bp$VALOR_DFC_DA, is.na(bp$VALOR_DFC_DA), 0)
+bp$EBITDA <- bp$VALOR_DRE_EBIT + bp$VALOR_DFC_DA
 bp$ESCALA_MOEDA_DFC_DA <- NULL
 bp$source_file <- NULL
 bp$COLUNA_DF <- NULL
@@ -304,6 +304,13 @@ bp <- left_join(obs.completas, bp, by= "CD_CVM")
 names(bp)[1] <- "CD_CVM"
 bp$n <- NULL
 
+nivel.gov <- as.data.frame(unique(bp$listing.segment))
+names(nivel.gov)[1] <- "Segmento"
+nivel.gov$GovCorp <- c(2, 1, 4, 3)
+
+bp <- left_join(bp, nivel.gov, by = c("listing.segment" = "Segmento"))
+bp <- subset(bp, bp$CD_CVM != 18724)
+bp <- subset(bp, bp$CD_CVM != 23159)
 
 rm(obs.completas, media.financeira, volume.ano, media.volatilidade, volatilidade.ano)
 gc()
@@ -314,7 +321,7 @@ indices <- as.data.frame(bp$CD_CVM)
 names(indices)[1] <- "CD_CVM"
 indices$ticker <- bp$simbolo
 indices$DT_REFER <- bp$DT_REFER
-indices$GC <- bp$listing.segment
+indices$GC <- bp$GovCorp
 indices$Volatilidade <- bp$volatilidade.media.ano
 indices$LG <- (bp$VL_CONTA+bp$VALOR_ATIVO_RLP)/(bp$VALOR_PASSIVO_CIRCULANTE+bp$VALOR_PASSIVO_ELP)
 indices$ROA <- (bp$VALOR_DRE_LL/bp$VALOR_ATIVO_TOTAL)
@@ -322,8 +329,5 @@ indices$IPL <- (bp$price.close/(bp$VALOR_DRE_LL/bp$total.acoes))
 indices$MEBITIDA <- (bp$EBITDA/bp$VALOR_DRE_RL)
 saveRDS(indices, "Data/indices_calculados")
 
-
 rm(list = ls())
 gc()
-
-
