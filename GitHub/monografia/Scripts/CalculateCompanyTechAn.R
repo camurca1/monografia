@@ -3,9 +3,11 @@ options(scipen = 999)
 
 library(pracma)
 library(RcppRoll)
+library(tidyverse)
 
 calc_MME <- function(x){
-  x$MME <- movavg(x$price.adjusted, 26, "e")
+  x$MME.lenta <- movavg(x$price.adjusted, 150, "e")
+  x$MMS.rapida <- movavg(x$price.adjusted, 50, "s")
   return(x)
 }
 
@@ -38,4 +40,21 @@ l.precos <- lapply(l.precos, calc_MACD)
 l.precos <- lapply(l.precos, calc_est)
 precos.analise <- unsplit(l.precos, precos.analise$ticker)
 
+ELET3 <- subset(precos.analise, precos.analise$ticker == "ELET3")
+ELET3$mov.MM <- if_else(ELET3$MMS.rapida > ELET3$MME.lenta, 1,
+                         if_else(ELET3$MMS.rapida < ELET3$MME.lenta, -1, 0, missing = 0),
+                         missing = 0)
+ELET3$mov.MACD <- if_else(ELET3$MACD1 > ELET3$MACD2, 1, -1, missing = 0)
+ELET3$mov.est <- if_else(ELET3$estK > 0.8 & ELET3$estD > 0.8,
+                         -1,
+                         if_else(ELET3$estK < 0.2 & ELET3$estD < 0.2,
+                                 1,
+                                 0,
+                                 missing = 0),
+                         missing = 0)
+
+plot(ELET3$ref.date, ELET3$price.adjusted, type = "l")
+plot(ELET3$ref.date, ELET3$mov.MME, type = "l")
+
 saveRDS(precos.analise, "Data/indAT")
+
