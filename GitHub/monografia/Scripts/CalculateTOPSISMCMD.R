@@ -6,6 +6,7 @@ set.seed(10)
 library(topsis)
 library(bizdays)
 library(dplyr)
+library(lubridate)
 
 holidaysANBIMA <- append(holidaysANBIMA,  ymd(c("2016-12-30", "2017-12-29")))
 cal <- create.calendar("Brazil/ANBIMA",
@@ -33,6 +34,7 @@ amd.matriz$dia.util.ant <- NULL
 amd.matriz <- as.matrix(amd.matriz)
 
 rm(ind.fundamento, ind.tecnico)
+gc()
 
 pesos <- c(rep(1/ncol(amd.matriz), ncol(amd.matriz)))
 critPosNeg <- c("+", "-", "+", "+", "+", "+", "+")

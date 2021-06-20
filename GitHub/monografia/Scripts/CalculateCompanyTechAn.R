@@ -83,6 +83,14 @@ precos.analise <- readRDS("Data/retorno_volatilidade_acoes")
 precos.analise$retornos <- NULL
 precos.analise$volatilidade <- NULL
 
+obs.completas <- precos.analise %>%
+  count(CD_CVM) %>%
+  filter(n==1736)
+
+precos.analise <- left_join(obs.completas, precos.analise, by= "CD_CVM")
+names(precos.analise)[1] <- "CD_CVM"
+precos.analise$n <- NULL
+
 l.precos <- split(precos.analise, precos.analise$ticker)
 l.precos <- lapply(l.precos, calc_MME)
 l.precos <- lapply(l.precos, calc_MACD)
@@ -92,3 +100,5 @@ precos.analise <- unsplit(l.precos, precos.analise$ticker)
 
 saveRDS(precos.analise, "Data/indAT")
 
+rm(list = ls())
+gc()

@@ -47,6 +47,9 @@ precos <- unsplit(l.acoes, precos$ticker)
 
 saveRDS(precos, "Data/retorno_volatilidade_acoes")
 
+rm(list = ls())
+gc()
+
 #### Código utilizado para o teste do modelo ####
 
 # ELET3 <- subset(precos, precos$ticker == "ELET3")

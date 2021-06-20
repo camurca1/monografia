@@ -37,7 +37,8 @@ cia.info2_reduzido <- left_join(as.data.frame(codigos.cvm),
                                 cia.info2,
                                 by = c("codigos.cvm" = "id.company"))
 cia.info2_reduzido <- cia.info2_reduzido %>%
-  filter(!is.na(tickers))
+  filter(!is.na(tickers)) %>%
+  filter(codigos.cvm != 12653)
 saveRDS(cia.info2_reduzido, file = "Data/cia_info_reduzido")
 
 

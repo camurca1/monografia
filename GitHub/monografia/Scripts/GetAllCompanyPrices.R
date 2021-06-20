@@ -60,3 +60,4 @@ saveRDS(tickers.negociados, "Data/tickers_mais_negociados")
 
 rm(list = ls())
 gc()
+

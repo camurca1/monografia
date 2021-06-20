@@ -311,8 +311,10 @@ nivel.gov$GovCorp <- c(2, 1, 4, 3)
 bp <- left_join(bp, nivel.gov, by = c("listing.segment" = "Segmento"))
 bp <- subset(bp, bp$CD_CVM != 18724)
 bp <- subset(bp, bp$CD_CVM != 23159)
+bp <- subset(bp, bp$CD_CVM != 12653)
 
-rm(obs.completas, media.financeira, volume.ano, media.volatilidade, volatilidade.ano)
+rm(obs.completas, media.financeira, volume.ano,
+   media.volatilidade, volatilidade.ano, nivel.gov)
 gc()
 
 saveRDS(bp, "Data/balanco_patrimonial")
