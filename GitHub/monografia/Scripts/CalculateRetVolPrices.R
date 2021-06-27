@@ -2,12 +2,9 @@ rm(list = ls())
 options(scipen = 999)
 
 library(tidyverse)
-library(tidyquant)
-library(tidyr)
 library(lubridate)
-library(forecast)
 library(fGarch)
-library(FinTS)
+
 
 log_retorno <- function(x){
   x$retornos <- c(as.numeric(0),
