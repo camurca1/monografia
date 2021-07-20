@@ -26,17 +26,35 @@ retornos.matriz <- retornos.matriz %>%
 retornos.matriz$ref.date <- NULL
 retornos.matriz <- as.timeSeries(retornos.matriz)
 
-
 specs <- portfolioSpec()
-`setRiskFreeRate<-`(specs, 3)
-`setNFrontierPoints<-`(specs, 100)
+`setNFrontierPoints<-`(specs, 1000)
 
 portfolio.eficiente <- tangencyPortfolio(retornos.matriz, spec = specs, constraints = "LongOnly")
+weightsPie(portfolio.eficiente, col = qualiPalette(n = 76, "Set1"))
+mtext(text = "Pesos - Portifolio Eficiente", side = 3, line = 1.5,
+      font = 2, cex = 0.7, adj = 0)
 
-fronteira <- portfolioFrontier(retornos.matriz)
 
-frontierPlot(fronteira, col = c('blue', 'red'), pch = 20)
-monteCarloPoints(fronteira, mcSteps = 5000, pch = 20, cex = 0.25 )
+fronteira <- portfolioFrontier(retornos.matriz, spec = specs, constraints = "LongOnly")
+
+
+frontierPlot(fronteira, col = c('blue', 'red'), pch = 20, frontier = "upper",
+             ylim = c(0, 0.002), type = "l")
+grid()
+minvariancePoints(fronteira,col="red",pch=20, return = "mean", risk = "Cov")
+tangencyPoints(fronteira,col="blue",pch=20)
+tangencyLines(fronteira, col="green")
+sharpeRatioLines(object=fronteira, return ="mean",
+                 risk =  "Cov", pch=20)
+xy <- singleAssetPoints(fronteira, return = "mean", risk = "Cov",
+                        auto = FALSE, cex = 1.5,
+                        col = rainbow(6), lwd = 2,
+                        ylim = c(0, 0.002))
+singleAssetPoints(fronteira, return = "mean", risk = "Cov",
+                       auto = FALSE, cex = 1.5,
+                       col = rainbow(6), lwd = 2,
+                  ylim = c(0, 0.002),
+                  text(xy[, 1], xy[, 2], pos = 3, rownames(xy), font = 2, cex = 0.7))
 
 dados.portifolio <- getPortfolio(portfolio.eficiente)
 
