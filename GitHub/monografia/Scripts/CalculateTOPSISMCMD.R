@@ -65,5 +65,8 @@ l.carteiras <- list("carteira1" = carteira1,
 saveRDS(l.carteiras, "Data/carteirasTOPSIS")
 saveRDS(ranking, "Data/rankingTOPSIS")
 
+write.csv2(l.carteiras, "Data/carteirasTOPSIS.csv", row.names = F)
+write.csv2(ranking, "Data/ranking_ativos.csv", row.names = F)
+
 rm(list = ls())
 gc()
