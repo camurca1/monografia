@@ -57,5 +57,13 @@ singleAssetPoints(fronteira, return = "mean", risk = "Cov",
                   text(xy[, 1], xy[, 2], pos = 3, rownames(xy), font = 2, cex = 0.7))
 
 dados.portifolio <- getPortfolio(portfolio.eficiente)
+carteira <- as.data.frame(dados.portifolio$weights)
+carteira$Tickers <- row.names(carteira)
+row.names(carteira) <- NULL
+carteira <- subset(carteira, carteira$`dados.portifolio$weights` > 0)
+names(carteira)[1] <- "Pesos"
+carteira <- carteira %>% select(Tickers, Pesos)
 
-saveRDS(dados.portifolio, "Data/carteira_eficiente")
+saveRDS(dados.portifolio, "Data/dados_carteira_eficiente")
+saveRDS(carteira, "Data/carteira_eficiente")
+write.csv2(carteira, "Data/carteira_eficiente.csv", row.names = F)
