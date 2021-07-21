@@ -25,6 +25,11 @@ df_papel$ticker <- gsub("\\.SA", "", df_papel$ticker)
 df_controle <- ls_papel$df.control
 df_controle$ticker <- gsub("\\.SA", "", df_controle$ticker)
 
+# importar benchmark
+ls_ibov <- BatchGetSymbols("^BVSP", dt_inicial, dt_final, thresh.bad.data, bench.ticker)
+df_ibov <- ls_ibov$df.tickers
+df_ibov$ticker <- gsub("\\.SA", "", df_ibov$ticker)
+
 # tratamento tabela tickers
 tickers <- left_join(tickers,
                     select(df_controle,
@@ -40,7 +45,8 @@ tickers$threshold.decision <- NULL
 saveRDS(df_papel, "Data/precos_acoes")
 saveRDS(df_controle, "Data/acoes_controle")
 saveRDS(tickers, "Data/tabelatickers")
-rm(df_controle, df_papel)
+saveRDS(df_ibov, "Data/precosibov")
+rm(df_controle, df_papel, df_ibov)
 
 # selecionar acoes mais negociadas
 preco.papel <- readRDS("Data/precos_acoes")
