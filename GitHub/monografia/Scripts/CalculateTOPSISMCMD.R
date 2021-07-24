@@ -50,21 +50,18 @@ top.30 <- slice_max(ranking, order_by = ranking$score, n = 30)
 rm(bp, amd.matriz)
 gc()
 
-carteira1 <- top.30 %>%
+carteira1 <- slice_max(ranking, order_by = ranking$score, n = 15)
+carteira1$pesos <- 1/nrow(carteira1)
+carteira2 <- slice_min(ranking, order_by = ranking$score, n = 15)
+carteira2$pesos <- 1/nrow(carteira2)
+carteira3 <- top.30 %>%
   group_by(sub.sector) %>%
   slice_max(order_by = score, n = 1)
-carteira1$pesos <- 1/nrow(carteira1)
-carteira2 <- slice_max(ranking, order_by = ranking$score, n = 15)
-carteira2$pesos <- 1/nrow(carteira2)
-carteira3 <- slice_min(ranking, order_by = ranking$score, n = 15)
 carteira3$pesos <- 1/nrow(carteira3)
-carteira4 <- sample_n(ranking, 15)
-carteira4$pesos <- 1/nrow(carteira4)
 
 l.carteiras <- list("carteira1" = carteira1,
                     "carteira2" = carteira2,
-                    "carteira3" = carteira3,
-                    "carteira4" = carteira4)
+                    "carteira3" = carteira3)
 
 saveRDS(l.carteiras, "Data/carteirasTOPSIS")
 saveRDS(ranking, "Data/rankingTOPSIS")
