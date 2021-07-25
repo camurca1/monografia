@@ -1,12 +1,16 @@
 rm(list = ls())
 options(scipen = 999)
+set.seed(10)
 
 library(dplyr)
 library(lubridate)
 library(tidyquant)
 library(quantmod)
+library(gridExtra)
+library(gtable)
 library(ggplot2)
 library(tidyr)
+
 
 
 caixa.disponivel <- 1000
@@ -60,7 +64,7 @@ crescimento.Ibov <- retorno.mensal.ibov %>%
   mutate(crescimento.capital = crescimento.capital * caixa.disponivel)
 
 portifo.Ibov.anualizado <- retorno.mensal.ibov %>%
-  tq_performance(Ra = Rb, Rb = NULL, performance_fun = table.AnnualizedReturns)
+  tq_performance(Ra = Rb, Rb = NULL, performance_fun = table.AnnualizedReturns, Rf = 0.07644/12)
 
 portifo.Ibov.MaxDrawdown <- retorno.mensal.ibov %>%
   tq_performance(Ra = Rb, Rb = NULL, performance_fun = table.DownsideRisk)
@@ -74,7 +78,7 @@ portifo.Ibov.avgRecovery <- retorno.mensal.ibov %>%
 
 resumo.portifo.Ibov <- tibble(Portfolio = c("Ibovespa"))
 resumo.portifo.Ibov$AnnualizedReturn <- mean(portifo.Ibov.anualizado$AnnualizedReturn)
-resumo.portifo.Ibov$`AnnualizedSharpe(Rf=0%)` <- mean(portifo.Ibov.anualizado$`AnnualizedSharpe(Rf=0%)`)
+resumo.portifo.Ibov$`AnnualizedSharpe(Rf=7.64%)` <- mean(portifo.Ibov.anualizado$`AnnualizedSharpe(Rf=7.64%)`)
 resumo.portifo.Ibov$AnnualizedStdDev <- mean(portifo.Ibov.anualizado$AnnualizedStdDev)
 resumo.portifo.Ibov$MDD <- mean(portifo.Ibov.MaxDrawdown$MDD)
 resumo.portifo.Ibov$avgDD <- mean(portifo.Ibov.avgDrawdown$AverageDrawdown)
@@ -130,7 +134,7 @@ crescimento.portifolio.MT <- retorno.ativos.carteira.MT %>%
   mutate(crescimento.capital = crescimento.capital * caixa.disponivel)
 
 portifo.MT.anualizado <- retorno.portifolio.MT %>%
-  tq_performance(Ra = Ret.MT, Rb = NULL, performance_fun = table.AnnualizedReturns)
+  tq_performance(Ra = Ret.MT, Rb = NULL, performance_fun = table.AnnualizedReturns, Rf = 0.07644/12)
 
 portifo.MT.MaxDrawdown <- retorno.portifolio.MT %>%
   tq_performance(Ra = Ret.MT, Rb = NULL, performance_fun = table.DownsideRisk)
@@ -144,31 +148,37 @@ portifo.MT.avgRecovery <- retorno.portifolio.MT %>%
 
 resumo.portifo.MT <- tibble(Portfolio = c("Moderna Teoria de Carteiras"))
 resumo.portifo.MT$AnnualizedReturn <- mean(portifo.MT.anualizado$AnnualizedReturn)
-resumo.portifo.MT$`AnnualizedSharpe(Rf=0%)` <- mean(portifo.MT.anualizado$`AnnualizedSharpe(Rf=0%)`)
+resumo.portifo.MT$`AnnualizedSharpe(Rf=7.64%)` <- mean(portifo.MT.anualizado$`AnnualizedSharpe(Rf=7.64%)`)
 resumo.portifo.MT$AnnualizedStdDev <- mean(portifo.MT.anualizado$AnnualizedStdDev)
 resumo.portifo.MT$MDD <- mean(portifo.MT.MaxDrawdown$MDD)
 resumo.portifo.MT$avgDD <- mean(portifo.MT.avgDrawdown$AverageDrawdown)
 resumo.portifo.MT$avgRec <- mean(portifo.MT.avgRecovery$AverageRecovery)
 
-retorno.portifolio.MT %>%
+
+retorno.MT <- retorno.portifolio.MT %>%
   ggplot(aes(x = ref.date, y = Ret.MT)) +
   geom_bar(stat = "identity", fill = palette_light()[[1]]) +
-  labs(title = "Retorno do Portifólio Eficiente",
+  labs(title = "Retornos da Carteira Eficiente",
        x = "", y = "Retorno Mensal") +
   geom_smooth(method = "lm") +
   theme_tq() +
   scale_color_tq() +
   scale_y_continuous(labels = scales::percent)
 
-crescimento.portifolio.MT %>%
+crescimento.MT <- crescimento.portifolio.MT %>%
   ggplot(aes(x = ref.date, y = crescimento.capital)) +
   geom_line(size = 2, color = palette_light()[[1]]) +
-  labs(title = "Crescimento Capital",
+  labs(title = "Crescimento do Capital",
        x = "", y = "Valor do Portifólio") +
   geom_smooth(method = "loess") +
   theme_tq() +
   scale_color_tq() +
   scale_y_continuous(labels = scales::label_dollar(prefix = "R$ "))
+
+gA <- ggplotGrob(retorno.MT)
+gB <- ggplotGrob(crescimento.MT)
+grid::grid.newpage()
+grid::grid.draw(rbind(gA, gB))
 
 ###### Performance e Visualizacao Carteira TOPSIS ######
 
@@ -203,7 +213,7 @@ crescimento.portifolio1.TOPSIS <- retorno.ativos.carteira1.TOPSIS %>%
   mutate(crescimento.capital = crescimento.capital * caixa.disponivel)
 
 portifo.TOPSIS1.anualizado <- retorno.portifolio1.TOPSIS %>%
-  tq_performance(Ra = Ret.TOPSIS, Rb = NULL, performance_fun = table.AnnualizedReturns)
+  tq_performance(Ra = Ret.TOPSIS, Rb = NULL, performance_fun = table.AnnualizedReturns, Rf = 0.07644/12)
 
 portifo.TOPSIS1.MaxDrawdown <- retorno.portifolio1.TOPSIS %>%
   tq_performance(Ra = Ret.TOPSIS, Rb = NULL, performance_fun = table.DownsideRisk)
@@ -217,31 +227,34 @@ portifo.TOPSIS1.avgRecovery <- retorno.portifolio1.TOPSIS %>%
 
 resumo.portifo.TOPSIS1 <- tibble(Portfolio = c("TOPSIS 1"))
 resumo.portifo.TOPSIS1$AnnualizedReturn <- mean(portifo.TOPSIS1.anualizado$AnnualizedReturn)
-resumo.portifo.TOPSIS1$`AnnualizedSharpe(Rf=0%)` <- mean(portifo.TOPSIS1.anualizado$`AnnualizedSharpe(Rf=0%)`)
+resumo.portifo.TOPSIS1$`AnnualizedSharpe(Rf=7.64%)` <- mean(portifo.TOPSIS1.anualizado$`AnnualizedSharpe(Rf=7.64%)`)
 resumo.portifo.TOPSIS1$AnnualizedStdDev <- mean(portifo.TOPSIS1.anualizado$AnnualizedStdDev)
 resumo.portifo.TOPSIS1$MDD <- mean(portifo.TOPSIS1.MaxDrawdown$MDD)
 resumo.portifo.TOPSIS1$avgDD <- mean(portifo.TOPSIS1.avgDrawdown$AverageDrawdown)
 resumo.portifo.TOPSIS1$avgRec <- mean(portifo.TOPSIS1.avgRecovery$AverageRecovery)
 
-retorno.portifolio1.TOPSIS %>%
+retorno.TOPSIS1 <- retorno.portifolio1.TOPSIS %>%
   ggplot(aes(x = ref.date, y = Ret.TOPSIS)) +
   geom_bar(stat = "identity", fill = palette_light()[[1]]) +
-  labs(title = "Retorno do Portifólio TOPSiS",
+  labs(title = "Retorno da Carteira TOPSIS 1",
        x = "", y = "Retorno Mensal") +
   geom_smooth(method = "lm") +
   theme_tq() +
   scale_color_tq() +
   scale_y_continuous(labels = scales::percent)
 
-crescimento.portifolio1.TOPSIS %>%
+crescimento.TOPSIS1 <- crescimento.portifolio1.TOPSIS %>%
   ggplot(aes(x = ref.date, y = crescimento.capital)) +
   geom_line(size = 2, color = palette_light()[[1]]) +
-  labs(title = "Crescimento Capital - TOPSIS",
+  labs(title = "Crescimento do Capital",
        x = "", y = "Valor do Portifólio") +
   geom_smooth(method = "loess") +
   theme_tq() +
   scale_color_tq() +
   scale_y_continuous(labels = scales::label_dollar(prefix = "R$ "))
+
+gA <- ggplotGrob(retorno.TOPSIS1)
+gB <- ggplotGrob(crescimento.TOPSIS1)
 
 # TOPSIS - 15 piores ativos
 
@@ -274,7 +287,7 @@ crescimento.portifolio2.TOPSIS <- retorno.ativos.carteira2.TOPSIS %>%
   mutate(crescimento.capital = crescimento.capital * caixa.disponivel)
 
 portifo.TOPSIS2.anualizado <- retorno.portifolio2.TOPSIS %>%
-  tq_performance(Ra = Ret.TOPSIS, Rb = NULL, performance_fun = table.AnnualizedReturns)
+  tq_performance(Ra = Ret.TOPSIS, Rb = NULL, performance_fun = table.AnnualizedReturns, Rf = 0.07644/12)
 
 portifo.TOPSIS2.MaxDrawdown <- retorno.portifolio2.TOPSIS %>%
   tq_performance(Ra = Ret.TOPSIS, Rb = NULL, performance_fun = table.DownsideRisk)
@@ -288,31 +301,36 @@ portifo.TOPSIS2.avgRecovery <- retorno.portifolio2.TOPSIS %>%
 
 resumo.portifo.TOPSIS2 <- tibble(Portfolio = c("TOPSIS 2"))
 resumo.portifo.TOPSIS2$AnnualizedReturn <- mean(portifo.TOPSIS2.anualizado$AnnualizedReturn)
-resumo.portifo.TOPSIS2$`AnnualizedSharpe(Rf=0%)` <- mean(portifo.TOPSIS2.anualizado$`AnnualizedSharpe(Rf=0%)`)
+resumo.portifo.TOPSIS2$`AnnualizedSharpe(Rf=7.64%)` <- mean(portifo.TOPSIS2.anualizado$`AnnualizedSharpe(Rf=7.64%)`)
 resumo.portifo.TOPSIS2$AnnualizedStdDev <- mean(portifo.TOPSIS2.anualizado$AnnualizedStdDev)
 resumo.portifo.TOPSIS2$MDD <- mean(portifo.TOPSIS2.MaxDrawdown$MDD)
 resumo.portifo.TOPSIS2$avgDD <- mean(portifo.TOPSIS2.avgDrawdown$AverageDrawdown)
 resumo.portifo.TOPSIS2$avgRec <- mean(portifo.TOPSIS2.avgRecovery$AverageRecovery)
 
-retorno.portifolio2.TOPSIS %>%
+retorno.TOPSIS2 <- retorno.portifolio2.TOPSIS %>%
   ggplot(aes(x = ref.date, y = Ret.TOPSIS)) +
   geom_bar(stat = "identity", fill = palette_light()[[1]]) +
-  labs(title = "Retorno do Portifólio TOPSiS 3",
-       x = "", y = "Retorno Mensal") +
+  labs(title = "Retorno da Carteira TOPSIS 2",
+       x = "", y = "") +
   geom_smooth(method = "lm") +
   theme_tq() +
   scale_color_tq() +
   scale_y_continuous(labels = scales::percent)
 
-crescimento.portifolio2.TOPSIS %>%
+crescimento.TOPSIS2 <- crescimento.portifolio2.TOPSIS %>%
   ggplot(aes(x = ref.date, y = crescimento.capital)) +
   geom_line(size = 2, color = palette_light()[[1]]) +
-  labs(title = "Crescimento Capital - TOPSIS 3",
-       x = "", y = "Valor do Portifólio") +
+  labs(title = "Crescimento do Capital",
+       x = "", y = "") +
   geom_smooth(method = "loess") +
   theme_tq() +
   scale_color_tq() +
   scale_y_continuous(labels = scales::label_dollar(prefix = "R$ "))
+
+gC <- ggplotGrob(retorno.TOPSIS2)
+gD <- ggplotGrob(crescimento.TOPSIS2)
+
+
 
 # TOPSIS - 1 ativo de cada setor - melhor pontuação
 
@@ -345,7 +363,7 @@ crescimento.portifolio3.TOPSIS <- retorno.ativos.carteira3.TOPSIS %>%
   mutate(crescimento.capital = crescimento.capital * caixa.disponivel)
 
 portifo.TOPSIS3.anualizado <- retorno.portifolio3.TOPSIS %>%
-  tq_performance(Ra = Ret.TOPSIS, Rb = NULL, performance_fun = table.AnnualizedReturns)
+  tq_performance(Ra = Ret.TOPSIS, Rb = NULL, performance_fun = table.AnnualizedReturns, Rf = 0.07644/12)
 
 portifo.TOPSIS3.MaxDrawdown <- retorno.portifolio3.TOPSIS %>%
   tq_performance(Ra = Ret.TOPSIS, Rb = NULL, performance_fun = table.DownsideRisk)
@@ -359,45 +377,52 @@ portifo.TOPSIS3.avgRecovery <- retorno.portifolio3.TOPSIS %>%
 
 resumo.portifo.TOPSIS3 <- tibble(Portfolio = c("TOPSIS 3"))
 resumo.portifo.TOPSIS3$AnnualizedReturn <- mean(portifo.TOPSIS3.anualizado$AnnualizedReturn)
-resumo.portifo.TOPSIS3$`AnnualizedSharpe(Rf=0%)` <- mean(portifo.TOPSIS3.anualizado$`AnnualizedSharpe(Rf=0%)`)
+resumo.portifo.TOPSIS3$`AnnualizedSharpe(Rf=7.64%)` <- mean(portifo.TOPSIS3.anualizado$`AnnualizedSharpe(Rf=7.64%)`)
 resumo.portifo.TOPSIS3$AnnualizedStdDev <- mean(portifo.TOPSIS3.anualizado$AnnualizedStdDev)
 resumo.portifo.TOPSIS3$MDD <- mean(portifo.TOPSIS3.MaxDrawdown$MDD)
 resumo.portifo.TOPSIS3$avgDD <- mean(portifo.TOPSIS3.avgDrawdown$AverageDrawdown)
 resumo.portifo.TOPSIS3$avgRec <- mean(portifo.TOPSIS3.avgRecovery$AverageRecovery)
 
-retorno.portifolio3.TOPSIS %>%
+retorno.TOPSIS3 <- retorno.portifolio3.TOPSIS %>%
   ggplot(aes(x = ref.date, y = Ret.TOPSIS)) +
   geom_bar(stat = "identity", fill = palette_light()[[1]]) +
-  labs(title = "Retorno do Portifólio TOPSiS",
-       x = "", y = "Retorno Mensal") +
+  labs(title = "Retorno da Carteira TOPSIS 3",
+       x = "", y = "") +
   geom_smooth(method = "lm") +
   theme_tq() +
   scale_color_tq() +
   scale_y_continuous(labels = scales::percent)
 
-crescimento.portifolio3.TOPSIS %>%
+crescimento.TOPSIS3 <- crescimento.portifolio3.TOPSIS %>%
   ggplot(aes(x = ref.date, y = crescimento.capital)) +
   geom_line(size = 2, color = palette_light()[[1]]) +
-  labs(title = "Crescimento Capital - TOPSIS",
-       x = "", y = "Valor do Portifólio") +
+  labs(title = "Crescimento do Capital",
+       x = "", y = "") +
   geom_smooth(method = "loess") +
   theme_tq() +
   scale_color_tq() +
   scale_y_continuous(labels = scales::label_dollar(prefix = "R$ "))
 
-
+gE <- ggplotGrob(retorno.TOPSIS3)
+gF <- ggplotGrob(crescimento.TOPSIS3)
+grid::grid.newpage()
+grid::grid.draw(cbind(rbind(gA, gB),
+                      rbind(gC, gD),
+                      rbind(gE, gF)))
 ###### Performance Carteira Aleatória #####
 
 n = 1000
 
 carteira.aleatoria <- list()
 
+prob.MGLU3 <- ifelse(unique(precos.acoes$ticker) == "MGLU3", 0.10, 0.90)
+
 
 for(i in 1:n){
   carteira.aleatoria[[i]] <- tibble("portifolio" = i, "ticker" = sample(unique(precos.acoes$ticker),
                                                              size = sample(c(8, 9, 10, 11, 12, 13, 14, 15),
                                                                            size = 1),
-                                                             replace = F))
+                                                             replace = F, prob = prob.MGLU3))
   carteira.aleatoria[[i]]$pesos.aux <- sample(c(10, 20, 30, 40, 50),
                                                      size = nrow(carteira.aleatoria[[i]]),
                                                      replace = T)
@@ -453,7 +478,7 @@ crescimento.mensal.portifolio.multi <- retorno.ativos.mensal.multi %>%
 RaRb_portifolio.multi <- left_join(retorno.mensal.portifolio.multi, retorno.mensal.ibov, by = "ref.date")
 
 portifo.aleatorio.anualizado <- RaRb_portifolio.multi %>%
-  tq_performance(Ra = Ra, Rb = NULL, performance_fun = table.AnnualizedReturns)
+  tq_performance(Ra = Ra, Rb = NULL, performance_fun = table.AnnualizedReturns, Rf = 0.07644/12)
 
 portifo.aleatorio.MaxDrawdown <- RaRb_portifolio.multi %>%
   tq_performance(Ra = Ra, Rb = NULL, performance_fun = table.DownsideRisk)
@@ -467,12 +492,13 @@ portifo.aleatorio.avgRecovery <- RaRb_portifolio.multi %>%
 
 resumo.portifo.aleatorio <- tibble(Portfolio = c("Aleatorio"))
 resumo.portifo.aleatorio$AnnualizedReturn <- mean(portifo.aleatorio.anualizado$AnnualizedReturn)
-resumo.portifo.aleatorio$`AnnualizedSharpe(Rf=0%)` <- mean(portifo.aleatorio.anualizado$`AnnualizedSharpe(Rf=0%)`)
+resumo.portifo.aleatorio$`AnnualizedSharpe(Rf=7.64%)` <- mean(portifo.aleatorio.anualizado$`AnnualizedSharpe(Rf=7.64%)`)
 resumo.portifo.aleatorio$AnnualizedStdDev <- mean(portifo.aleatorio.anualizado$AnnualizedStdDev)
 resumo.portifo.aleatorio$MDD <- mean(portifo.aleatorio.MaxDrawdown$MDD)
 resumo.portifo.aleatorio$avgDD <- mean(portifo.aleatorio.avgDrawdown$AverageDrawdown)
 resumo.portifo.aleatorio$avgRec <- mean(portifo.aleatorio.avgRecovery$AverageRecovery)
 
+table(carteira.aleatoria$ticker == "MGLU3")
 
 crescimento.mensal.portifolio.multi%>%
   ggplot(aes(x = ref.date, y = crescimento.capital, color = factor(portfolio))) +
@@ -487,7 +513,7 @@ crescimento.mensal.portifolio.multi%>%
   scale_y_continuous(labels = scales::dollar)
 
 
-View(carteira.aleatoria[[3]])
+
 
 ###### teste carteira 3 #######
 
@@ -549,10 +575,11 @@ resumo <- resumo.portifo.MT %>%
 resumo %>%
   ggplot(aes(x = AnnualizedStdDev, y = AnnualizedReturn, color = factor(Portfolio))) +
   geom_point(size = 4) +
-  labs(title = "Relação Risco x Retorno entre Portifólios",
+  labs(title = "Comparação do Risco x Retorno entre os Portifólios",
        subtitle = "Período de 2016 a 2020",
        x = "Risco a. a.", y = "Retorno a. a.",
        color = "Portfolio") +
   theme_tq() +
   scale_y_continuous(labels = scales::label_percent()) +
   scale_x_continuous(labels = scales::label_percent())
+
