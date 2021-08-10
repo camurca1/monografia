@@ -1,10 +1,29 @@
+# Escrito por: Alexandre Camurça Silva de Souza
+# Ambiente RStudio Desktop 1.4.1717 "Juliet Rose"
+
+# Etapa 5 - Calcular indicadores técnicos
+
+
+# limpar memória e desativar notação científica
 rm(list = ls())
 options(scipen = 999)
 
-library(pracma)
-library(RcppRoll)
-library(tidyverse)
+#### Gereciamento de pacotes ####
 
+# informar os pacotes que serao utilizados no script
+pacotes <- c("pracma", "RcppRoll", "tidyverse")
+
+# instalar pacotes ausentes
+pacotes_instalados <- pacotes %in% rownames(installed.packages())
+if (any(pacotes_instalados == FALSE)) {
+  install.packages(c(pacotes[!pacotes_instalados]))
+}
+
+# carregar pacotes
+invisible(lapply(pacotes, library, character.only = TRUE))
+
+
+#### funções para cálculos dos indicadores ####
 calc_MME <- function(x){
   x$MME.lenta <- movavg(x$price.adjusted, 150, "e")
   x$MMS.rapida <- movavg(x$price.adjusted, 50, "s")
@@ -78,11 +97,15 @@ calc_decisaoCV <- function(x){
   return(x)
 }
 
+
+#### carregar tabelas salvas ####
 precos.empresas <- readRDS("Data/precos_acoes")
 precos.analise <- readRDS("Data/retorno_volatilidade_acoes")
 precos.analise$retornos <- NULL
 precos.analise$volatilidade <- NULL
 
+
+#### calcular indicadores ####
 obs.completas <- precos.analise %>%
   count(CD_CVM) %>%
   filter(n==1736)
@@ -100,5 +123,6 @@ precos.analise <- unsplit(l.precos, precos.analise$ticker)
 
 saveRDS(precos.analise, "Data/indAT")
 
+#### limpeza de memória ####
 rm(list = ls())
 gc()
