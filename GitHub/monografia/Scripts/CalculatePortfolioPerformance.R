@@ -1,23 +1,42 @@
+# Escrito por: Alexandre Camurça Silva de Souza
+# Ambiente RStudio Desktop 1.4.1717 "Juliet Rose"
+
+# Etapa 8 - Comparação das performances
+
+
+# limpar memória e desativar notação científica
 rm(list = ls())
 options(scipen = 999)
+
+# fixar semente aleatória
 set.seed(10)
 
-library(dplyr)
-library(lubridate)
-library(tidyquant)
-library(quantmod)
-library(gridExtra)
-library(gtable)
-library(ggplot2)
-library(tidyr)
+#### Gereciamento de pacotes ####
+
+# informar os pacotes que serao utilizados no script
+pacotes <- c("tidyr", "dplyr", "lubridate", "tidyquant", "quantmod", "gridExtra",
+             "gtable", "ggplot2")
+
+# instalar pacotes ausentes
+pacotes_instalados <- pacotes %in% rownames(installed.packages())
+if (any(pacotes_instalados == FALSE)) {
+  install.packages(c(pacotes[!pacotes_instalados]))
+}
+
+# carregar pacotes
+invisible(lapply(pacotes, library, character.only = TRUE))
 
 
-
+# estabelecer parâmetros da análise
 caixa.disponivel <- 1000
 data.investimento <- ymd("2015-12-30")
+
+#### carregar tabelas salvas ####
 precos.acoes <- readRDS("Data/retorno_volatilidade_acoes")
 precos.ibov <- readRDS("Data/precosibov")
 precos.acoes$price.adjusted <- round(precos.acoes$price.adjusted, 2)
+
+#### mensalizar retornos dos ativos ####
 retorno.mensal.ativos <- precos.acoes %>%
   group_by(ticker) %>%
   tq_transmute(select = price.adjusted,
@@ -29,6 +48,7 @@ periodo.analise <- subset(precos.acoes,
 periodo.analise.ibov <- subset(precos.ibov,
                                precos.ibov$ref.date > data.investimento)
 
+#### carregar carteiras salvas ####
 carteira.MT <- readRDS("Data/carteira_eficiente")
 Carteiras.TOPSIS <- readRDS("Data/carteirasTOPSIS")
 carteira1.TOPSIS <- Carteiras.TOPSIS$carteira1
@@ -38,7 +58,7 @@ carteira2.TOPSIS <- carteira2.TOPSIS[,c("ticker", "pesos")]
 carteira3.TOPSIS <- Carteiras.TOPSIS$carteira3
 carteira3.TOPSIS <- carteira3.TOPSIS[,c("ticker", "pesos")]
 
-
+#### calcular retorno mensal do benchmark ####
 retorno.mensal.ibov <- periodo.analise.ibov %>%
   group_by(ticker) %>%
   tq_transmute(select = price.adjusted,
@@ -47,7 +67,7 @@ retorno.mensal.ibov <- periodo.analise.ibov %>%
                col_rename = "Rb")
 retorno.mensal.ibov$ticker <- NULL
 
-###### Performance e Visualizacao Carteira IBOVESPA ######
+#### Performance e Visualizacao Carteira IBOVESPA ####
 
 retorno.mensal.ibov <- periodo.analise.ibov %>%
   group_by(ticker) %>%
@@ -64,7 +84,8 @@ crescimento.Ibov <- retorno.mensal.ibov %>%
   mutate(crescimento.capital = crescimento.capital * caixa.disponivel)
 
 portifo.Ibov.anualizado <- retorno.mensal.ibov %>%
-  tq_performance(Ra = Rb, Rb = NULL, performance_fun = table.AnnualizedReturns, Rf = 0.07644/12)
+  tq_performance(Ra = Rb, Rb = NULL, performance_fun = table.AnnualizedReturns,
+                 Rf = 0.07644/12)
 
 portifo.Ibov.MaxDrawdown <- retorno.mensal.ibov %>%
   tq_performance(Ra = Rb, Rb = NULL, performance_fun = table.DownsideRisk)
@@ -105,7 +126,7 @@ crescimento.Ibov %>%
   scale_y_continuous(labels = scales::label_dollar(prefix = "R$ "))
 
 
-###### Performance e Visualizacao Carteira Moderna Teoria ######
+#### Performance e Visualizacao Carteira Moderna Teoria ####
 
 precos.carteira.MT <- left_join(carteira.MT, select(periodo.analise, ticker,
                                                     ref.date, price.adjusted),
@@ -134,7 +155,8 @@ crescimento.portifolio.MT <- retorno.ativos.carteira.MT %>%
   mutate(crescimento.capital = crescimento.capital * caixa.disponivel)
 
 portifo.MT.anualizado <- retorno.portifolio.MT %>%
-  tq_performance(Ra = Ret.MT, Rb = NULL, performance_fun = table.AnnualizedReturns, Rf = 0.07644/12)
+  tq_performance(Ra = Ret.MT, Rb = NULL, performance_fun = table.AnnualizedReturns,
+                 Rf = 0.07644/12)
 
 portifo.MT.MaxDrawdown <- retorno.portifolio.MT %>%
   tq_performance(Ra = Ret.MT, Rb = NULL, performance_fun = table.DownsideRisk)
@@ -180,7 +202,7 @@ gB <- ggplotGrob(crescimento.MT)
 grid::grid.newpage()
 grid::grid.draw(rbind(gA, gB))
 
-###### Performance e Visualizacao Carteira TOPSIS ######
+#### Performance e Visualizacao Carteira TOPSIS ####
 
 # TOPSIS - 15 primeiros ativos
 
@@ -409,7 +431,8 @@ grid::grid.newpage()
 grid::grid.draw(cbind(rbind(gA, gB),
                       rbind(gC, gD),
                       rbind(gE, gF)))
-###### Performance Carteira Aleatória #####
+
+#### Performance Carteira Aleatória ####
 
 n = 1000
 
@@ -422,7 +445,8 @@ for(i in 1:n){
   carteira.aleatoria[[i]] <- tibble("portifolio" = i, "ticker" = sample(unique(precos.acoes$ticker),
                                                              size = sample(c(8, 9, 10, 11, 12, 13, 14, 15),
                                                                            size = 1),
-                                                             replace = F, prob = prob.MGLU3))
+                                                             replace = F,
+                                                             prob = prob.MGLU3))
   carteira.aleatoria[[i]]$pesos.aux <- sample(c(10, 20, 30, 40, 50),
                                                      size = nrow(carteira.aleatoria[[i]]),
                                                      replace = T)
@@ -475,10 +499,12 @@ crescimento.mensal.portifolio.multi <- retorno.ativos.mensal.multi %>%
                wealth.index = TRUE) %>%
   mutate(crescimento.capital = crescimento.capital * caixa.disponivel)
 
-RaRb_portifolio.multi <- left_join(retorno.mensal.portifolio.multi, retorno.mensal.ibov, by = "ref.date")
+RaRb_portifolio.multi <- left_join(retorno.mensal.portifolio.multi,
+                                   retorno.mensal.ibov, by = "ref.date")
 
 portifo.aleatorio.anualizado <- RaRb_portifolio.multi %>%
-  tq_performance(Ra = Ra, Rb = NULL, performance_fun = table.AnnualizedReturns, Rf = 0.07644/12)
+  tq_performance(Ra = Ra, Rb = NULL, performance_fun = table.AnnualizedReturns,
+                 Rf = 0.07644/12)
 
 portifo.aleatorio.MaxDrawdown <- RaRb_portifolio.multi %>%
   tq_performance(Ra = Ra, Rb = NULL, performance_fun = table.DownsideRisk)
@@ -565,6 +591,8 @@ crescimento.mensal.portifolio.multi%>%
 #   scale_color_tq() +
 #   scale_y_continuous(labels = scales::label_dollar(prefix = "R$ "))
 
+
+#### construir a tabela de resumo das performances e visualizar em gráfico ####
 resumo <- resumo.portifo.MT %>%
   rbind(resumo.portifo.TOPSIS1) %>%
   rbind(resumo.portifo.TOPSIS2) %>%
@@ -573,7 +601,8 @@ resumo <- resumo.portifo.MT %>%
   rbind(resumo.portifo.aleatorio)
 
 resumo %>%
-  ggplot(aes(x = AnnualizedStdDev, y = AnnualizedReturn, color = factor(Portfolio))) +
+  ggplot(aes(x = AnnualizedStdDev, y = AnnualizedReturn,
+             color = factor(Portfolio))) +
   geom_point(size = 4) +
   labs(title = "Comparação do Risco x Retorno entre os Portifólios",
        subtitle = "Período de 2016 a 2020",
