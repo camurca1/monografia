@@ -1,14 +1,29 @@
+# Escrito por: Alexandre Camurça Silva de Souza
+# Ambiente RStudio Desktop 1.4.1717 "Juliet Rose"
+
+# Etapa 4 - Calcular retornos e volatilidades das ações
+
+
+# limpar memória e desativar notação científica
 rm(list = ls())
 options(scipen = 999)
 
-library(tidyverse)
-library(lubridate)
-library(fGarch)
-library(forecast)
-library(tseries)
-library(FinTS)
+#### Gereciamento de pacotes ####
+
+# informar os pacotes que serao utilizados no script
+pacotes <- c("tidyverse", "lubridate", "fGarch", "forecast", "tseries", "FinTS")
+
+# instalar pacotes ausentes
+pacotes_instalados <- pacotes %in% rownames(installed.packages())
+if (any(pacotes_instalados == FALSE)) {
+  install.packages(c(pacotes[!pacotes_instalados]))
+}
+
+# carregar pacotes
+invisible(lapply(pacotes, library, character.only = TRUE))
 
 
+#### funções para calculo de log-retorno e volatilidade ####
 log_retorno <- function(x){
   x$retornos <- c(as.numeric(0),
                   diff(log(x$price.adjusted), lag=1, differences = 1))
@@ -22,11 +37,15 @@ volatilidade <- function(x){
   return(x)
 }
 
-bp <- (readRDS("Data/balanco_patrimonial"))
+
+#### carregar tabelas salvas ####
+bp <- readRDS("Data/balanco_patrimonial")
+indices <- readRDS("Data/indices_calculados")
 precos.empresas <- as_tibble(readRDS("Data/precos_acoes"))
 precos.empresas$ref.date <- ymd(precos.empresas$ref.date)
 
 
+#### calcular retornos e volatilidades ####
 precos <- as.data.frame(bp$CD_CVM)
 names(precos)[1] <- "CD_CVM"
 precos$ticker <- bp$simbolo
@@ -48,6 +67,32 @@ precos <- unsplit(l.acoes, precos$ticker)
 
 saveRDS(precos, "Data/retorno_volatilidade_acoes")
 
+volatilidade.empresas <- tibble(precos)
+
+media.volatilidade <- subset(volatilidade.empresas,
+                             year(volatilidade.empresas$ref.date) > 2014)
+media.volatilidade <- media.volatilidade %>%
+  group_by(ticker, ano = lubridate::year(ref.date)) %>%
+  summarize(., volatilidade.media.ano = mean(volatilidade)) %>%
+  mutate(DT_REFER = ymd(paste0(ano, "-12-31")))
+
+media.volatilidade$ano <- NULL
+names(media.volatilidade)[1] <- "simbolo"
+volatilidade.ano <- as.data.frame(bp$CD_CVM)
+volatilidade.ano$DT_REFER <- bp$DT_REFER
+volatilidade.ano$simbolo <- bp$simbolo
+names(volatilidade.ano)[1:3] <- c("CD_CVM", "DT_REFER", "simbolo")
+volatilidade.ano <- left_join(volatilidade.ano,
+                              media.volatilidade,
+                              c("DT_REFER", "simbolo"))
+
+bp <- left_join(bp, volatilidade.ano, by=c("CD_CVM", "DT_REFER", "simbolo"))
+saveRDS(bp, "Data/balanco_patrimonial")
+
+indices$Volatilidade <- bp$volatilidade.media.ano
+saveRDS(indices, "Data/indices_calculados")
+
+#### limpeza de memória ####
 rm(list = ls())
 gc()
 
