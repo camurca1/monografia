@@ -1,24 +1,42 @@
+# Escrito por: Alexandre Camurça Silva de Souza
+# Ambiente RStudio Desktop 1.4.1717 "Juliet Rose"
+
+# Etapa 3 - Calcular indicadores de Valuation
+
+
+# limpar memória e desativar notação científica
 rm(list = ls())
 options(scipen = 999)
 
+#### Gereciamento de pacotes ####
 
-library(tidyverse)
-library(lubridate)
-library(bizdays)
-library(stringr)
+# informar os pacotes que serao utilizados no script
+pacotes <- c("tidyverse", "lubridate", "bizdays", "stringr")
+
+# instalar pacotes ausentes
+pacotes_instalados <- pacotes %in% rownames(installed.packages())
+if (any(pacotes_instalados == FALSE)) {
+  install.packages(c(pacotes[!pacotes_instalados]))
+}
+
+# carregar pacotes
+invisible(lapply(pacotes, library, character.only = TRUE))
 
 
+#### criar calendário de dias úteis ####
 holidaysANBIMA <- append(holidaysANBIMA,  ymd(c("2016-12-30", "2017-12-29")))
-cal <- create.calendar("Brazil/ANBIMA", holidaysANBIMA, weekdays=c("saturday", "sunday"))
+cal <- create.calendar("Brazil/ANBIMA", holidaysANBIMA,
+                       weekdays=c("saturday", "sunday"))
 
-
+#### carregar tabelas salvas ####
 dfp.empresas <- readRDS("Data/cia_dfp")
 cia.info <- readRDS("Data/cia_info_reduzido")
 precos.empresas <- readRDS("Data/precos_acoes")
 tickers.negociados <- readRDS("Data/tickers_mais_negociados")
 fre.empresas <- readRDS("Data/cia_fre")
-volatilidade.empresas <- readRDS("Data/retorno_volatilidade_acoes")
 
+
+#### filtrar tabela de preços ####
 precos.empresas$vol.financeiro.dia <- precos.empresas$price.close*precos.empresas$volume
 
 names(precos.empresas)[7] <- "DT_REFER"
@@ -33,14 +51,7 @@ media.financeira <- media.financeira %>%
   mutate(DT_REFER = ymd(paste0(ano, "-12-31")))
 media.financeira$ano <- NULL
 
-media.volatilidade <- volatilidade.empresas %>%
-  filter(year(ref.date) > 2014) %>%
-  group_by(ticker, ano = year(ref.date)) %>%
-  summarize(., volatilidade.media.ano = mean(volatilidade)) %>%
-  mutate(DT_REFER = ymd(paste0(ano, "-12-31")))
-media.volatilidade$ano <- NULL
-names(media.volatilidade)[1] <- "simbolo"
-
+#### construir tabelas apenas com as rubricas que serão utilizadas ####
 ativo.empresas <- dfp.empresas$`DF Consolidado - Balanço Patrimonial Ativo`
 passivo.empresas <- dfp.empresas$`DF Consolidado - Balanço Patrimonial Passivo`
 dre.empresas <- dfp.empresas$`DF Consolidado - Demonstração do Resultado`
@@ -128,7 +139,7 @@ DeprecAmort <- rbind(DeprecAmort, filter(dfc.empresas,
                                          dfc.empresas$CD_CVM == 22799,
                                          dfc.empresas$CD_CONTA == '6.01.01.02'))
 
-rm(ativo.empresas, passivo.empresas, dfc.empresas, volatilidade.empresas,
+rm(ativo.empresas, passivo.empresas, dfc.empresas,
    dre.empresas, dfp.empresas, cia.info, fre.empresas)
 gc()
 
@@ -277,6 +288,7 @@ bp$COLUNA_DF <- NULL
 bp$DT_INI_EXERC <- NULL
 bp$dia.util.anterior <- NULL
 
+# excluir empresas que não possuem dados para todos os anos
 volume.ano <- as.data.frame(bp$CD_CVM)
 volume.ano$DT_REFER <- bp$DT_REFER
 volume.ano$simbolo <- bp$simbolo
@@ -287,14 +299,6 @@ volume.ano <-  left_join(volume.ano,
 bp <- left_join(bp, volume.ano, by=c("CD_CVM", "DT_REFER", "simbolo"))
 bp <- subset(bp, !is.na(bp$volume.medio.financeiro.ano))
 
-volatilidade.ano <- as.data.frame(bp$CD_CVM)
-volatilidade.ano$DT_REFER <- bp$DT_REFER
-volatilidade.ano$simbolo <- bp$simbolo
-names(volatilidade.ano)[1:3] <- c("CD_CVM", "DT_REFER", "simbolo")
-volatilidade.ano <- left_join(volatilidade.ano,
-                              media.volatilidade,
-                              c("DT_REFER", "simbolo"))
-bp <- left_join(bp, volatilidade.ano, by=c("CD_CVM", "DT_REFER", "simbolo"))
 
 obs.completas <- bp %>%
   count(CD_CVM) %>%
@@ -304,6 +308,7 @@ bp <- left_join(obs.completas, bp, by= "CD_CVM")
 names(bp)[1] <- "CD_CVM"
 bp$n <- NULL
 
+# incluir pontuação de nível de governança corporativa
 nivel.gov <- as.data.frame(unique(bp$listing.segment))
 names(nivel.gov)[1] <- "Segmento"
 nivel.gov$GovCorp <- c(2, 1, 4, 3)
@@ -313,23 +318,24 @@ bp <- subset(bp, bp$CD_CVM != 18724)
 bp <- subset(bp, bp$CD_CVM != 23159)
 bp <- subset(bp, bp$CD_CVM != 12653)
 
-rm(obs.completas, media.financeira, volume.ano,
-   media.volatilidade, volatilidade.ano, nivel.gov)
+rm(obs.completas, media.financeira, volume.ano, nivel.gov)
 gc()
 
 saveRDS(bp, "Data/balanco_patrimonial")
 
+
+#### construir tabela com os indicadores calculados ####
 indices <- as.data.frame(bp$CD_CVM)
 names(indices)[1] <- "CD_CVM"
 indices$ticker <- bp$simbolo
 indices$DT_REFER <- bp$DT_REFER
 indices$GC <- bp$GovCorp
-indices$Volatilidade <- bp$volatilidade.media.ano
 indices$LG <- (bp$VL_CONTA+bp$VALOR_ATIVO_RLP)/(bp$VALOR_PASSIVO_CIRCULANTE+bp$VALOR_PASSIVO_ELP)
 indices$ROA <- (bp$VALOR_DRE_LL/bp$VALOR_ATIVO_TOTAL)
 indices$IPL <- (bp$price.close/(bp$VALOR_DRE_LL/bp$total.acoes))
 indices$MEBITIDA <- (bp$EBITDA/bp$VALOR_DRE_RL)
 saveRDS(indices, "Data/indices_calculados")
 
+#### limpeza de memória ####
 rm(list = ls())
 gc()
